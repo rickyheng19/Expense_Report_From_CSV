@@ -20,10 +20,20 @@ for file in os.scandir(directory):
     if file.is_dir():
         continue
     CSVData = pd.read_csv(file)
+    #Renames the columns in the debit file to match the other cards
     if "Transaction Date" not in CSVData.columns or "Category" not in CSVData.columns:
         if "Posting Date" in CSVData.columns or "Type" in CSVData.columns:
             CSVData.rename(columns={"Posting Date": "Transaction Date"}, inplace=True)
             CSVData.rename(columns={"Type": "Category"}, inplace=True)
-    filteredData = CSVData[header]
-    print(filteredData.head())
+    #Filter columns        
+    CSVData = CSVData[header]
+
+    #Only include negative values and add to master expense sheet
+    if 'Amount' in CSVData.columns:
+        negative_amounts = CSVData[CSVData['Amount'] < 0]
+        newFile = pd.concat([newFile, negative_amounts], ignore_index=True)
+
+print(newFile.head())
+
+    
 
