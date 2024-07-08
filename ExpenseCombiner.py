@@ -8,7 +8,7 @@ import os
 today = datetime.now()
 lastMonth = today.month - 1 if today.month > 1 else 12
 lastYear = today.year if today.month > 1 else today.year - 1
-lastMonthName  = f"{calendar.month_name[lastMonth]} {lastYear} Expense Report"
+lastMonthName  = f"{calendar.month_name[lastMonth]} {lastYear} Expense Report.csv"
 
 #Make master expense sheet
 header = ["Transaction Date", "Description", "Category", "Amount"]
@@ -28,12 +28,23 @@ for file in os.scandir(directory):
     #Filter columns        
     CSVData = CSVData[header]
 
+    #Make Category to ignore
+    categoryToIgnore = "LOAN_PMT"
+
     #Only include negative values and add to master expense sheet
     if 'Amount' in CSVData.columns:
-        negative_amounts = CSVData[CSVData['Amount'] < 0]
-        newFile = pd.concat([newFile, negative_amounts], ignore_index=True)
+        appendRow = CSVData[(CSVData['Amount'] < 0) & (CSVData['Category'] != categoryToIgnore)].copy()
+        #Remove negative sign
+        appendRow.loc[:, "Amount"] = appendRow['Amount'].abs()
+        newFile = pd.concat([newFile, appendRow], ignore_index=True)
 
-print(newFile.head())
+#Convert dates to datetime format, and sort column.
+newFile['Transaction Date'] = pd.to_datetime(newFile["Transaction Date"])
+newFile = newFile.sort_values(by="Transaction Date")
+
+#Save file
+saveDirectory = Path('..') / lastMonthName
+newFile.to_csv(saveDirectory, index=False)
 
     
 
