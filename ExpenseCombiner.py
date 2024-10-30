@@ -17,9 +17,14 @@ newFile = pd.DataFrame(columns=header)
 
 #Make Category to ignore and change
 categoryToIgnore = ['ACCT_XFER', "LOAN_PMT"]
-categoryToChangeBills = ['ACH_DEBIT','LAMIA','YouTubePremium', 'CHATGPT SUBSCR']
+categoryToChangeBills = ['ACH_DEBIT','LAMIA','YouTubePremium', 'CHATGPT SUBSCR', 'JESSICA', 'Insurance']
 categoryToChangeTravel = ['UBER 866']
 categoryToChangeShopping = ['MISC_DEBIT']
+categoryToChangeGroceries = ['Merchandise']
+categoryToChangeGas = ['Gas/Automotive']
+categoryToChangeFood = ['Dining','Personal']
+categoryToChangeEntertainment = ['Internet', 'Other Services', 'Other']
+categoryToChangeHealth = ['Health Care']
 
 # Method to filter rows
 def change_category(row):
@@ -32,6 +37,16 @@ def change_category(row):
     elif any(keyword in row['Description'] for keyword in categoryToChangeShopping) or \
          any(keyword in row['Category'] for keyword in categoryToChangeShopping):
         return 'Shopping'
+    elif any(keyword in row['Category'] for keyword in categoryToChangeGroceries):
+        return 'Groceries'   
+    elif any(keyword in row['Category'] for keyword in categoryToChangeGas):
+        return 'Gas' 
+    elif any(keyword in row['Category'] for keyword in categoryToChangeFood):
+        return 'Food & Drink' 
+    elif any(keyword in row['Category'] for keyword in categoryToChangeEntertainment):
+        return 'Entertainment' 
+    elif any(keyword in row['Category'] for keyword in categoryToChangeHealth):
+        return 'Health & Wellness' 
     return row['Category']
 
 #go through each CVS file in folder
@@ -48,7 +63,22 @@ for file in os.scandir(directory):
             CSVData = CSVData.drop(columns=['Details','Balance','Check or Slip #'])
             #Pick needed columns 
             CSVData.rename(columns={"Posting Date": "Transaction Date", "Type": "Category"}, inplace=True)
+
+    #for captial one doc
+    if "Amount" not in CSVData.columns:
+        if "Debit" in CSVData.columns:
+            CSVData = pd.read_csv(file)
+            CSVData = CSVData.drop(columns=['Credit','Posted Date','Card No.'])
+            #Pick needed columns 
+            CSVData.rename(columns={"Debit": "Amount"}, inplace=True)
+            # Turn all amounts in the "Amount" column negative
+            CSVData['Amount'] = -abs(pd.to_numeric(CSVData['Amount'], errors='coerce'))
+
     
+    # Convert "Transaction Date" to mm/dd/yyyy format
+    if 'Transaction Date' in CSVData.columns:
+        CSVData['Transaction Date'] = pd.to_datetime(CSVData['Transaction Date'], errors='coerce').dt.strftime('%Y/%m/%d')
+
     #Filter columns        
     CSVData = CSVData[header]
 
@@ -74,5 +104,5 @@ newFile['Transaction Date'] = pd.to_datetime(newFile["Transaction Date"])
 newFile = newFile.sort_values(by="Category")
 
 #Save file
-saveDirectory = Path('..') / lastMonthName
+saveDirectory = Path('..') / 'Expense Reports' / lastMonthName
 newFile.to_csv(saveDirectory, index=False)
